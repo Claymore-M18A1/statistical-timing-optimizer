@@ -1,0 +1,14 @@
+read_liberty my.lib
+read_verilog design.v
+link_design gcd
+read_sdc design.sdc
+read_parasitics -spef design.spef
+
+# Inject derate variation
+source derate.tcl
+
+update_timing
+report_wns > wns.txt
+report_tns > tns.txt
+exit
+
