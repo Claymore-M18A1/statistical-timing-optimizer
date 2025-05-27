@@ -5,6 +5,7 @@ import random
 import subprocess
 import time
 import sys
+import matplotlib.pyplot as plt
 
 # Import necessary functions directly
 from sta_runner import run_sta, generate_derate
@@ -26,84 +27,132 @@ SPEF_FILE = "design.spef" # Optional, but highly recommended for accuracy
 
 # SA Parameters
 INIT_TEMP = 1.0     # Initial temperature - Adjust based on initial cost variations
-FINAL_TEMP = 1e-2   # Final temperature - Lower value allows finer tuning at the end
-ALPHA = 0.9        # Cooling rate (0.85-0.99). Slower cooling (higher alpha) explores more.
-MAX_ITER = 200      # Max iterations per temperature step (or total iterations, depending on loop structure) - Increase significantly
-MC_TRIALS = 3      # Number of Monte Carlo STA runs per cost evaluation - Increase for accuracy (e.g., 10-30) but slows down SA.
-TNS_WEIGHT = 0.1    # Weight for TNS in the cost function
+FINAL_TEMP = 0.01   # Final temperature - Lower value allows finer tuning at the end
+ALPHA = 0.95        # Cooling rate (0.85-0.99). Slower cooling (higher alpha) explores more.
+MAX_ITER = 400      # Max iterations per temperature step (or total iterations, depending on loop structure) - Increase significantly
+MC_TRIALS = 8      # Number of Monte Carlo STA runs per cost evaluation - Increase for accuracy (e.g., 10-30) but slows down SA.
+TNS_WEIGHT = 1.2    # Weight for TNS in the cost function
+
+# Cost function weights
+TIMING_WEIGHT = 1  # Weight for timing cost
+AREA_WEIGHT = 0    # Weight for area cost
+
+# Area normalization factor (adjust based on your design)
+AREA_NORM_FACTOR = 1000.0  # Normalize area to similar scale as timing
 
 # --- Cost Function ---
 # --- START OF relevant part of simulated_annealing.py ---
-
+cost_history = []
 # ... (other imports and configurations) ...
 
 # --- Cost Function ---
-def cost_function(netlist_path):
-    """
-    Calculates the cost of a given netlist using Monte Carlo STA.
-    Lower cost is better. Cost focuses on timing violations.
-    """
+def calculate_area(verilog_path):
+    """Calculate total area of the design."""
+    try:
+        with open(verilog_path, 'r') as f:
+            content = f.read()
+            
+        # Count instances of each cell type and size
+        cell_areas = {
+            "AND2_X1": 2.0, "AND2_X2": 4.0, "AND2_X4": 8.0,
+            "AND3_X1": 3.0, "AND3_X2": 6.0, "AND3_X4": 12.0,
+            "AND4_X1": 4.0, "AND4_X2": 8.0, "AND4_X4": 16.0,
+            "AOI21_X1": 2.5, "AOI21_X2": 5.0, "AOI21_X4": 10.0,
+            "AOI22_X1": 3.0, "AOI22_X2": 6.0, "AOI22_X4": 12.0,
+            "BUF_X1": 1.0, "BUF_X2": 2.0, "BUF_X4": 4.0, "BUF_X8": 8.0, "BUF_X16": 16.0, "BUF_X32": 32.0,
+            "CLKBUF_X1": 1.5, "CLKBUF_X2": 3.0, "CLKBUF_X3": 4.5,
+            "DFF_X1": 5.0, "DFF_X2": 10.0,
+            "INV_X1": 1.0, "INV_X2": 2.0, "INV_X4": 4.0, "INV_X8": 8.0, "INV_X16": 16.0, "INV_X32": 32.0,
+            "NAND2_X1": 1.5, "NAND2_X2": 3.0, "NAND2_X4": 6.0,
+            "NAND3_X1": 2.0, "NAND3_X2": 4.0, "NAND3_X4": 8.0,
+            "NAND4_X1": 2.5, "NAND4_X2": 5.0, "NAND4_X4": 10.0,
+            "NOR2_X1": 1.5, "NOR2_X2": 3.0, "NOR2_X4": 6.0,
+            "NOR3_X1": 2.0, "NOR3_X2": 4.0, "NOR3_X4": 8.0,
+            "NOR4_X1": 2.5, "NOR4_X2": 5.0, "NOR4_X4": 10.0,
+            "OAI21_X1": 2.5, "OAI21_X2": 5.0, "OAI21_X4": 10.0,
+            "OAI22_X1": 3.0, "OAI22_X2": 6.0, "OAI22_X4": 12.0,
+            "OR2_X1": 2.0, "OR2_X2": 4.0, "OR2_X4": 8.0,
+            "OR3_X1": 2.5, "OR3_X2": 5.0, "OR3_X4": 10.0,
+            "OR4_X1": 3.0, "OR4_X2": 6.0, "OR4_X4": 12.0,
+            "TBUF_X1": 2.0, "TBUF_X2": 4.0, "TBUF_X4": 8.0, "TBUF_X8": 16.0, "TBUF_X16": 32.0,
+            "XNOR2_X1": 3.0, "XNOR2_X2": 6.0,
+            "XOR2_X1": 3.0, "XOR2_X2": 6.0
+        }
+        
+        total_area = 0.0
+        for cell_type, area in cell_areas.items():
+            count = content.count(cell_type)
+            total_area += count * area
+            
+        return total_area
+        
+    except Exception as e:
+        print(f"Error calculating area: {e}")
+        return 0.0
+
+def calculate_cost(verilog_path, design_name, sdc_path, lib_path, spef_path=None):
+    """Calculate the cost of a solution based on timing and area."""
+    print(f"  [Cost] Evaluating {verilog_path} with {MC_TRIALS} MC trials...")
     wns_list = []
     tns_list = []
-    print(f"  [Cost] Evaluating {netlist_path} with {MC_TRIALS} MC trials...")
     successful_trials = 0
 
-    required_files = [netlist_path, SDC_FILE, LIB_FILE]
-    # Check SPEF existence once outside the loop
-    spef_exists = SPEF_FILE and os.path.exists(SPEF_FILE)
-    if SPEF_FILE and not spef_exists:
-        print(f"    [Warning] SPEF file '{SPEF_FILE}' not found. STA accuracy reduced.")
-
     for i in range(MC_TRIALS):
-        # 1. Generate new random derates for this trial
-        generate_derate(path=DERATE_TCL) # Overwrites the file each time
-
-        # 2. Run STA
-        # Make sure run_sta uses the correct derate file
-        wns, tns = run_sta(verilog_file=netlist_path,
-                           design_name=DESIGN_NAME,
-                           sdc_path=SDC_FILE,
-                           lib_path=LIB_FILE,
-                           spef_path=SPEF_FILE if spef_exists else None,
-                           derate_tcl=DERATE_TCL)
-
-        # 3. Process results
+        # Generate new random derates for this trial
+        generate_derate(path=DERATE_TCL)
+        
+        # Run STA
+        wns, tns = run_sta(
+            verilog_file=verilog_path,
+            design_name=design_name,
+            sdc_path=sdc_path,
+            lib_path=lib_path,
+            spef_path=spef_path,
+            derate_tcl=DERATE_TCL
+        )
+        
         if wns is not None and tns is not None:
             wns_list.append(wns)
             tns_list.append(tns)
             successful_trials += 1
-            # --- ADDED PRINT STATEMENT ---
-            # Determine pass/fail status for this specific trial
-            passed = (wns >= 0 and tns >= 0) # Or just wns >= 0 depending on your criteria
+            # Print results for this trial
+            passed = (wns >= 0 and tns >= 0)
             status = "✓ Pass" if passed else "✗ Fail"
-            # Print the details for this trial
-            print(f"    [Trial {i+1:02d}/{MC_TRIALS}] WNS = {wns:+.4f}, TNS = {tns:+.4f} -> {status}")
-            # --- END OF ADDED PRINT ---
+            print(f"    [Trial {i+1:02d}/{MC_TRIALS}] WNS = {wns:+.4f} ns, TNS = {tns:+.4f} ns -> {status}")
         else:
-            # STA failed for this trial
-            print(f"    [Trial {i+1:02d}/{MC_TRIALS}] STA Failed for {netlist_path}. Assigning infinite cost.")
-            # Clean up derate file if it exists
-            if os.path.exists(DERATE_TCL): os.remove(DERATE_TCL)
-            return float('inf') # Penalize heavily
-
-    # Clean up the last derate file
-    if os.path.exists(DERATE_TCL): os.remove(DERATE_TCL)
-
-    # Calculate cost based on successful trials
+            print(f"    [Trial {i+1:02d}/{MC_TRIALS}] STA Failed")
+    
+    # Clean up derate file
+    if os.path.exists(DERATE_TCL):
+        os.remove(DERATE_TCL)
+    
     if not successful_trials:
-        print(f"    [!] No successful STA trials for {netlist_path}. Assigning infinite cost.")
+        print("  [Cost] No successful STA trials. Assigning infinite cost.")
         return float('inf')
-
-    # Cost Calculation (using average, penalizing negative)
+    
+    # Calculate average timing metrics
     avg_wns = sum(wns_list) / successful_trials
     avg_tns = sum(tns_list) / successful_trials
-
-    cost = 1e-6 # Base cost
-    cost += max(0, -avg_wns)
-    cost += TNS_WEIGHT * max(0, -avg_tns)
-
-    print(f"    [Cost OK] Avg WNS={avg_wns:.4f}, Avg TNS={avg_tns:.4f} -> Cost={cost:.6f}")
-    return cost
+    
+    print(f"  [Cost] Average WNS = {avg_wns:+.4f} ns, Average TNS = {avg_tns:+.4f} ns")
+    
+    # Calculate timing cost (negative values indicate violations)
+    timing_cost = 0.0
+    if avg_wns < 0:
+        timing_cost += abs(avg_wns) * 10.0  # Weight WNS violations more heavily
+    if avg_tns < 0:
+        timing_cost += abs(avg_tns)
+    
+    # Calculate area cost
+    area = calculate_area(verilog_path)
+    area_cost = area / AREA_NORM_FACTOR  # Normalize area to similar scale as timing
+    
+    # Combine costs with weights
+    total_cost = (TIMING_WEIGHT * timing_cost) + (AREA_WEIGHT * area_cost)
+    
+    print(f"  [Cost] Timing Cost = {timing_cost:.4f}, Area Cost = {area_cost:.4f}, Total Cost = {total_cost:.4f}")
+    
+    return total_cost
 
 # ... (rest of the simulated_annealing.py code: accept function, SA loop, main block) ...
 
@@ -160,7 +209,7 @@ def simulated_annealing():
 
     # Calculate initial cost
     print("[SA Init] Calculating initial cost...")
-    current_cost = cost_function(CURRENT_NETLIST)
+    current_cost = calculate_cost(CURRENT_NETLIST, DESIGN_NAME, SDC_FILE, LIB_FILE, SPEF_FILE)
     if current_cost == float('inf'):
         print("[FATAL ERROR] Initial baseline netlist failed STA. Cannot proceed. Check baseline files and setup.")
         sys.exit(1)
@@ -187,8 +236,7 @@ def simulated_annealing():
             continue
 
         # 2. Evaluate: Calculate the cost of the candidate solution
-        candidate_cost = cost_function(CANDIDATE_NETLIST)
-
+        candidate_cost = calculate_cost(CANDIDATE_NETLIST, DESIGN_NAME, SDC_FILE, LIB_FILE, SPEF_FILE)
         print(f"  [Evaluate] Current Cost = {current_cost:.6f}, Candidate Cost = {candidate_cost:.6f}")
 
         # 3. Decide: Accept or reject the candidate
@@ -219,6 +267,7 @@ def simulated_annealing():
         # A common alternative is to run MAX_ITER iterations *per temperature step*.
         temp *= ALPHA
         # time.sleep(0.01) # Optional small delay
+        cost_history.append(current_cost)
 
         # Clean up candidate file (optional, saves disk space)
         # if os.path.exists(CANDIDATE_NETLIST): os.remove(CANDIDATE_NETLIST)
@@ -269,30 +318,28 @@ def simulated_annealing():
     if wns_base is not None and wns_best is not None:
         wns_diff = wns_best - wns_base
         wns_improvement = (wns_diff > 0) # Higher WNS is better
-        print(f"  WNS Difference: {wns_diff:+.4f} ns {'(Improved 👍)' if wns_improvement else '(Worsened 👎 or No Change)'}")
+        wns_status = '(Improved)' if wns_improvement else '(Worsened or No Change)'
+        print(f"  WNS Difference: {wns_diff:+.4f} ns {wns_status}")
     else:
+        wns_diff = None
+        wns_status = 'N/A (STA failed for baseline or best)'
         print("  WNS Difference: N/A (STA failed for baseline or best)")
 
     if tns_base is not None and tns_best is not None:
-        # TNS is Total Negative Slack, closer to 0 (or positive) is better
         tns_diff = tns_best - tns_base
-        # Improvement means TNS increased (became less negative or more positive)
-        tns_improvement = (tns_diff > 0) if tns_base < 0 else (tns_best >= 0) # Consider if baseline was already non-negative
-        # More nuanced check for TNS improvement:
-        # If baseline TNS was negative, improvement means best TNS is less negative (larger value).
-        # If baseline TNS was non-negative, improvement means best TNS is also non-negative.
+        tns_improvement = (tns_diff > 0) if tns_base < 0 else (tns_best >= 0)
         tns_status = "N/A"
         if tns_base < 0:
-            if tns_best > tns_base: tns_status = '(Improved 👍)'
-            else: tns_status = '(Worsened 👎 or No Change)'
-        else: # tns_base >= 0
-            if tns_best >= 0: tns_status = '(Maintained ✅)'
-            else: tns_status = '(Worsened 👎 - Became Negative!)'
-
+            if tns_best > tns_base: tns_status = '(Improved)'
+            else: tns_status = '(Worsened or No Change)'
+        else:
+            if tns_best >= 0: tns_status = '(Maintained)'
+            else: tns_status = '(Worsened - Became Negative!)'
         print(f"  TNS Difference: {tns_diff:+.4f} ns {tns_status}")
     else:
+        tns_diff = None
+        tns_status = 'N/A (STA failed for baseline or best)'
         print("  TNS Difference: N/A (STA failed for baseline or best)")
-
 
     # Clean up the last derate file
     if os.path.exists(DERATE_TCL):
@@ -300,6 +347,37 @@ def simulated_annealing():
             os.remove(DERATE_TCL)
         except OSError:
             pass
+
+    # Save SA Cost Curve
+    plt.plot(cost_history)
+    plt.xlabel("Iteration")
+    plt.ylabel("Cost")
+    plt.title("SA Cost over Iterations")
+    plt.grid(True)
+    plt.tight_layout()
+
+    # --- Add performance summary as text on the plot ---
+    summary_lines = [
+        "Performance Comparison (Best vs Baseline):",
+        f"Baseline: WNS={wns_base if wns_base is not None else 'N/A'} ns, TNS={tns_base if tns_base is not None else 'N/A'} ns",
+        f"Best:     WNS={wns_best if 'wns_best' in locals() and wns_best is not None else 'N/A'} ns, TNS={tns_best if 'tns_best' in locals() and tns_best is not None else 'N/A'} ns",
+        f"WNS Diff: {wns_diff if wns_diff is not None else 'N/A'} ns {wns_status}",
+        f"TNS Diff: {tns_diff if tns_diff is not None else 'N/A'} ns {tns_status}"
+    ]
+    summary_text = "\n".join(summary_lines)
+    # Place the text at the bottom left of the plot
+    plt.gca().text(0.01, 0.01, summary_text, transform=plt.gca().transAxes,
+                   fontsize=8, va='bottom', ha='left', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+
+    # --- Save plot with SA parameters in filename, in 'results' folder ---
+    results_dir = "results"
+    if not os.path.exists(results_dir):
+        os.makedirs(results_dir)
+    plot_filename = f"sa_cost_curve_INIT_TEMP-{INIT_TEMP}_FINAL_TEMP-{FINAL_TEMP}_ALPHA-{ALPHA}_MAX_ITER-{MAX_ITER}.png"
+    plot_path = os.path.join(results_dir, plot_filename)
+    plt.savefig(plot_path)
+    print(f"Saved cost plot as {plot_path}")
+
 
 # --- Main Execution ---
 if __name__ == "__main__":

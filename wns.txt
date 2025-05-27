@@ -1,1 +1,1 @@
-wns max -0.24
+wns max -0.03

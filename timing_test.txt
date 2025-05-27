@@ -1,0 +1,43 @@
+Startpoint: dpath.b_reg.out[12]$_DFFE_PP_
+            (rising edge-triggered flip-flop clocked by core_clock)
+Endpoint: resp_msg[13] (output port clocked by core_clock)
+Path Group: core_clock
+Path Type: max
+
+  Delay    Time   Description
+---------------------------------------------------------
+   0.00    0.00   clock core_clock (rise edge)
+   0.00    0.00   clock source latency
+   0.00    0.00 ^ clk (in)
+   0.03    0.03 ^ clkbuf_0_clk/Z (CLKBUF_X3)
+   0.04    0.07 ^ clkbuf_2_1__f_clk/Z (CLKBUF_X3)
+   0.00    0.07 ^ dpath.b_reg.out[12]$_DFFE_PP_/CK (DFF_X1)
+   0.10    0.17 v dpath.b_reg.out[12]$_DFFE_PP_/Q (DFF_X1)
+   0.02    0.20 ^ _494_/ZN (INV_X2)
+   0.01    0.21 v _582_/ZN (NOR2_X4)
+   0.03    0.24 ^ _583_/ZN (NOR2_X4)
+   0.01    0.25 v _730_/ZN (INV_X4)
+   0.02    0.27 ^ _740_/ZN (NOR2_X4)
+   0.01    0.29 v _741_/ZN (INV_X1)
+   0.03    0.31 ^ _742_/ZN (NOR2_X2)
+   0.03    0.35 ^ _744_/ZN (AND2_X2)
+   0.01    0.36 v _747_/ZN (NAND2_X2)
+   0.01    0.37 ^ _757_/ZN (NAND2_X2)
+   0.01    0.39 v _758_/ZN (NAND2_X2)
+   0.01    0.40 ^ _760_/ZN (NAND2_X2)
+   0.02    0.42 ^ output41/Z (BUF_X1)
+   0.00    0.42 ^ resp_msg[13] (out)
+           0.42   data arrival time
+
+   0.46    0.46   clock core_clock (rise edge)
+   0.00    0.46   clock network delay (propagated)
+   0.00    0.46   clock reconvergence pessimism
+  -0.09    0.37   output external delay
+           0.37   data required time
+---------------------------------------------------------
+           0.37   data required time
+          -0.42   data arrival time
+---------------------------------------------------------
+          -0.05   slack (VIOLATED)
+
+

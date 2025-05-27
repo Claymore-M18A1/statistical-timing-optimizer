@@ -648,7 +648,7 @@ module gcd (clk,
     .ZN(_037_));
  INV_X2 _488_ (.A(\dpath.a_lt_b$in1[9] ),
     .ZN(_038_));
- INV_X4 _489_ (.A(\dpath.a_lt_b$in1[8] ),
+ INV_X2 _489_ (.A(\dpath.a_lt_b$in1[8] ),
     .ZN(_039_));
  NAND4_X1 _490_ (.A1(_036_),
     .A2(net73),
@@ -685,7 +685,7 @@ module gcd (clk,
     .ZN(_051_));
  INV_X2 _502_ (.A(\dpath.a_lt_b$in1[6] ),
     .ZN(_052_));
- INV_X4 _503_ (.A(\dpath.a_lt_b$in1[5] ),
+ INV_X2 _503_ (.A(\dpath.a_lt_b$in1[5] ),
     .ZN(_053_));
  INV_X2 _504_ (.A(\dpath.a_lt_b$in1[4] ),
     .ZN(_054_));
@@ -699,18 +699,18 @@ module gcd (clk,
     .A3(_050_),
     .A4(_055_),
     .ZN(_056_));
- BUF_X4 _507_ (.A(\ctrl.state.out[2] ),
+ BUF_X2 _507_ (.A(\ctrl.state.out[2] ),
     .Z(_057_));
  INV_X2 _508_ (.A(_057_),
     .ZN(_058_));
  OR2_X1 _509_ (.A1(_058_),
     .A2(net34),
     .ZN(_059_));
- BUF_X4 _510_ (.A(net36),
+ BUF_X2 _510_ (.A(net36),
     .Z(_060_));
- BUF_X4 _511_ (.A(_060_),
+ BUF_X2 _511_ (.A(_060_),
     .Z(_061_));
- BUF_X4 _512_ (.A(_061_),
+ BUF_X2 _512_ (.A(_061_),
     .Z(_062_));
  NAND2_X1 _513_ (.A1(_062_),
     .A2(net33),
@@ -720,7 +720,7 @@ module gcd (clk,
     .B1(net34),
     .B2(_063_),
     .ZN(_002_));
- BUF_X4 _515_ (.A(_003_),
+ BUF_X2 _515_ (.A(_003_),
     .Z(_064_));
  AND3_X1 _516_ (.A1(_058_),
     .A2(\ctrl.state.out[1] ),
@@ -730,9 +730,9 @@ module gcd (clk,
     .B1(net53),
     .B2(net35),
     .ZN(_065_));
- BUF_X4 _518_ (.A(_060_),
+ BUF_X2 _518_ (.A(_060_),
     .Z(_066_));
- BUF_X4 _519_ (.A(_066_),
+ BUF_X2 _519_ (.A(_066_),
     .Z(_067_));
  INV_X1 _520_ (.A(_067_),
     .ZN(_068_));
@@ -970,7 +970,7 @@ module gcd (clk,
  NAND2_X4 _603_ (.A1(_038_),
     .A2(net72),
     .ZN(_148_));
- INV_X2 _604_ (.A(\dpath.a_lt_b$in0[9] ),
+ INV_X1 _604_ (.A(\dpath.a_lt_b$in0[9] ),
     .ZN(_149_));
  NAND2_X2 _605_ (.A1(_149_),
     .A2(\dpath.a_lt_b$in1[9] ),
@@ -978,9 +978,9 @@ module gcd (clk,
  NAND2_X4 _606_ (.A1(_148_),
     .A2(_150_),
     .ZN(_151_));
- INV_X4 _607_ (.A(_151_),
+ INV_X2 _607_ (.A(_151_),
     .ZN(_152_));
- NAND2_X2 _608_ (.A1(_039_),
+ NAND2_X4 _608_ (.A1(_039_),
     .A2(\dpath.a_lt_b$in0[8] ),
     .ZN(_153_));
  INV_X2 _609_ (.A(\dpath.a_lt_b$in0[8] ),
@@ -991,7 +991,7 @@ module gcd (clk,
  NAND2_X4 _611_ (.A1(_153_),
     .A2(_155_),
     .ZN(_156_));
- INV_X4 _612_ (.A(_156_),
+ INV_X2 _612_ (.A(_156_),
     .ZN(_157_));
  NAND2_X2 _613_ (.A1(_152_),
     .A2(_157_),
@@ -1052,7 +1052,7 @@ module gcd (clk,
  NAND2_X1 _632_ (.A1(_170_),
     .A2(_176_),
     .ZN(_177_));
- INV_X4 _633_ (.A(_177_),
+ INV_X2 _633_ (.A(_177_),
     .ZN(_178_));
  NAND2_X4 _634_ (.A1(_161_),
     .A2(_178_),
@@ -1060,7 +1060,7 @@ module gcd (clk,
  NAND2_X2 _635_ (.A1(_057_),
     .A2(_003_),
     .ZN(_180_));
- INV_X4 _636_ (.A(_180_),
+ INV_X2 _636_ (.A(_180_),
     .ZN(_181_));
  NAND3_X1 _637_ (.A1(_179_),
     .A2(net37),
@@ -1078,7 +1078,7 @@ module gcd (clk,
  NOR2_X4 _640_ (.A1(_058_),
     .A2(_060_),
     .ZN(_185_));
- BUF_X4 _641_ (.A(_185_),
+ BUF_X2 _641_ (.A(_185_),
     .Z(_186_));
  NAND2_X1 _642_ (.A1(_184_),
     .A2(_186_),
@@ -1102,7 +1102,7 @@ module gcd (clk,
     .A2(_057_),
     .A3(_178_),
     .ZN(_192_));
- INV_X4 _649_ (.A(_192_),
+ INV_X2 _649_ (.A(_192_),
     .ZN(_193_));
  NAND3_X1 _650_ (.A1(_193_),
     .A2(\dpath.a_lt_b$in1[10] ),
@@ -1114,7 +1114,7 @@ module gcd (clk,
  NAND2_X4 _652_ (.A1(_195_),
     .A2(_115_),
     .ZN(_196_));
- INV_X4 _653_ (.A(_196_),
+ INV_X2 _653_ (.A(_196_),
     .ZN(_197_));
  NAND3_X2 _654_ (.A1(_075_),
     .A2(_084_),
@@ -1171,7 +1171,7 @@ module gcd (clk,
     .A2(\dpath.a_lt_b$in1[11] ),
     .A3(_064_),
     .ZN(_212_));
- INV_X4 _671_ (.A(_083_),
+ INV_X2 _671_ (.A(_083_),
     .ZN(_213_));
  XNOR2_X2 _672_ (.A(\dpath.a_lt_b$in1[1] ),
     .B(\dpath.a_lt_b$in0[1] ),
@@ -1197,12 +1197,12 @@ module gcd (clk,
  NOR2_X4 _679_ (.A1(_106_),
     .A2(_079_),
     .ZN(_221_));
- INV_X4 _680_ (.A(_221_),
+ INV_X2 _680_ (.A(_221_),
     .ZN(_222_));
  NOR2_X4 _681_ (.A1(_102_),
     .A2(_097_),
     .ZN(_223_));
- INV_X4 _682_ (.A(_223_),
+ INV_X2 _682_ (.A(_223_),
     .ZN(_224_));
  NOR2_X4 _683_ (.A1(_224_),
     .A2(_222_),
@@ -1240,7 +1240,7 @@ module gcd (clk,
     .ZN(_236_));
  INV_X1 _695_ (.A(_236_),
     .ZN(_237_));
- INV_X4 _696_ (.A(_093_),
+ INV_X2 _696_ (.A(_093_),
     .ZN(_238_));
  NAND2_X4 _697_ (.A1(_238_),
     .A2(_157_),
@@ -1339,9 +1339,9 @@ module gcd (clk,
  NAND2_X1 _729_ (.A1(net55),
     .A2(_268_),
     .ZN(_269_));
- INV_X4 _730_ (.A(_128_),
+ INV_X2 _730_ (.A(_128_),
     .ZN(_270_));
- OAI21_X2 _731_ (.A(_270_),
+ OAI21_X1 _731_ (.A(_270_),
     .B1(_264_),
     .B2(_267_),
     .ZN(_271_));
@@ -1841,7 +1841,7 @@ module gcd (clk,
  AND2_X1 _885_ (.A1(_188_),
     .A2(\dpath.a_lt_b$in0[9] ),
     .ZN(_400_));
- AOI21_X2 _886_ (.A(_400_),
+ AOI21_X1 _886_ (.A(_400_),
     .B1(_062_),
     .B2(net18),
     .ZN(_401_));
@@ -1851,7 +1851,7 @@ module gcd (clk,
  NAND2_X4 _888_ (.A1(_192_),
     .A2(_064_),
     .ZN(_402_));
- BUF_X4 _889_ (.A(_402_),
+ BUF_X2 _889_ (.A(_402_),
     .Z(_403_));
  MUX2_X1 _890_ (.A(\dpath.a_lt_b$in0[0] ),
     .B(net1),
@@ -1860,7 +1860,7 @@ module gcd (clk,
  NAND2_X1 _891_ (.A1(_403_),
     .A2(_404_),
     .ZN(_405_));
- BUF_X4 _892_ (.A(_402_),
+ BUF_X2 _892_ (.A(_402_),
     .Z(_406_));
  OAI21_X1 _893_ (.A(_405_),
     .B1(_049_),
@@ -1897,7 +1897,7 @@ module gcd (clk,
  NAND2_X1 _902_ (.A1(_066_),
     .A2(net4),
     .ZN(_413_));
- BUF_X4 _903_ (.A(_061_),
+ BUF_X2 _903_ (.A(_061_),
     .Z(_414_));
  OAI21_X1 _904_ (.A(_413_),
     .B1(_414_),
@@ -1910,7 +1910,7 @@ module gcd (clk,
     .B1(net67),
     .B2(_406_),
     .ZN(_023_));
- BUF_X4 _907_ (.A(_402_),
+ BUF_X2 _907_ (.A(_402_),
     .Z(_417_));
  NAND2_X1 _908_ (.A1(_066_),
     .A2(net5),
@@ -2352,7 +2352,7 @@ module gcd (clk,
     .Z(resp_msg[1]));
  BUF_X1 output45 (.A(net45),
     .Z(resp_msg[2]));
- BUF_X2 output46 (.A(net46),
+ BUF_X1 output46 (.A(net46),
     .Z(resp_msg[3]));
  BUF_X1 output47 (.A(net47),
     .Z(resp_msg[4]));
@@ -2380,7 +2380,7 @@ module gcd (clk,
     .Z(clknet_2_3__leaf_clk));
  INV_X2 clkload0 (.A(clknet_2_0__leaf_clk));
  INV_X2 clkload1 (.A(clknet_2_2__leaf_clk));
- INV_X4 clkload2 (.A(clknet_2_3__leaf_clk));
+ INV_X2 clkload2 (.A(clknet_2_3__leaf_clk));
  BUF_X1 rebuffer1 (.A(_128_),
     .Z(net54));
  BUF_X1 rebuffer2 (.A(_128_),
@@ -2389,7 +2389,7 @@ module gcd (clk,
     .Z(net56));
  BUF_X2 rebuffer4 (.A(_101_),
     .Z(net57));
- BUF_X4 rebuffer5 (.A(_234_),
+ BUF_X2 rebuffer5 (.A(_234_),
     .Z(net58));
  BUF_X1 rebuffer6 (.A(_100_),
     .Z(net59));
@@ -2427,7 +2427,7 @@ module gcd (clk,
     .Z(net114));
  BUF_X1 rebuffer62 (.A(_089_),
     .Z(net115));
- BUF_X4 rebuffer63 (.A(_089_),
+ BUF_X2 rebuffer63 (.A(_089_),
     .Z(net116));
  BUF_X2 rebuffer64 (.A(\dpath.a_lt_b$in1[2] ),
     .Z(net117));
@@ -2453,13 +2453,13 @@ module gcd (clk,
     .Z(net69));
  BUF_X1 rebuffer17 (.A(_106_),
     .Z(net70));
- BUF_X4 rebuffer18 (.A(_199_),
+ BUF_X2 rebuffer18 (.A(_199_),
     .Z(net71));
  BUF_X2 rebuffer22 (.A(\dpath.a_lt_b$in0[7] ),
     .Z(net75));
  BUF_X1 rebuffer23 (.A(net38),
     .Z(net76));
- BUF_X4 rebuffer24 (.A(\dpath.a_lt_b$in1[4] ),
+ BUF_X2 rebuffer24 (.A(\dpath.a_lt_b$in1[4] ),
     .Z(net77));
  BUF_X1 rebuffer31 (.A(_155_),
     .Z(net84));

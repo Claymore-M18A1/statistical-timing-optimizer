@@ -1,29 +1,33 @@
-Startpoint: dpath.b_reg.out[4]$_DFFE_PP_
+Startpoint: dpath.a_reg.out[6]$_DFFE_PP_
             (rising edge-triggered flip-flop clocked by core_clock)
-Endpoint: resp_msg[13] (output port clocked by core_clock)
+Endpoint: resp_msg[11] (output port clocked by core_clock)
 Path Group: core_clock
 Path Type: max
 
   Delay    Time   Description
 ---------------------------------------------------------
    0.00    0.00   clock core_clock (rise edge)
-   0.08    0.08   clock network delay (propagated)
-   0.00    0.08 ^ dpath.b_reg.out[4]$_DFFE_PP_/CK (DFF_X2)
-   0.13    0.21 ^ dpath.b_reg.out[4]$_DFFE_PP_/Q (DFF_X2)
-   0.03    0.24 v _504_/ZN (INV_X1)
-   0.02    0.26 ^ _558_/ZN (NAND2_X4)
-   0.05    0.31 v _561_/ZN (NAND2_X1)
-   0.10    0.41 ^ _679_/ZN (NOR2_X4)
-   0.03    0.44 ^ rebuffer12/Z (BUF_X2)
-   0.03    0.47 v _745_/ZN (NAND2_X1)
-   0.03    0.50 ^ _746_/ZN (NAND2_X2)
-   0.02    0.52 v _747_/ZN (NAND2_X2)
-   0.01    0.54 ^ _757_/ZN (NAND2_X4)
-   0.01    0.55 v _758_/ZN (NAND2_X1)
-   0.04    0.59 ^ _760_/ZN (NAND2_X1)
-   0.02    0.61 ^ output41/Z (BUF_X8)
-   0.00    0.61 ^ resp_msg[13] (out)
-           0.61   data arrival time
+   0.00    0.00   clock source latency
+   0.00    0.00 ^ clk (in)
+   0.03    0.03 ^ clkbuf_0_clk/Z (CLKBUF_X2)
+   0.04    0.07 ^ clkbuf_2_2__f_clk/Z (CLKBUF_X2)
+   0.00    0.07 ^ dpath.a_reg.out[6]$_DFFE_PP_/CK (DFF_X1)
+   0.11    0.18 ^ dpath.a_reg.out[6]$_DFFE_PP_/Q (DFF_X1)
+   0.01    0.20 v _550_/ZN (INV_X2)
+   0.02    0.21 ^ _551_/ZN (NAND2_X4)
+   0.02    0.23 v _552_/ZN (NAND2_X4)
+   0.03    0.26 ^ _681_/ZN (NOR2_X4)
+   0.01    0.27 v _682_/ZN (INV_X2)
+   0.02    0.30 ^ _683_/ZN (NOR2_X4)
+   0.01    0.31 v _684_/ZN (NAND2_X4)
+   0.01    0.32 ^ _692_/ZN (NAND2_X4)
+   0.02    0.34 v _701_/ZN (NAND2_X1)
+   0.01    0.35 ^ _708_/ZN (NAND2_X1)
+   0.01    0.37 v _709_/ZN (NAND2_X1)
+   0.02    0.38 ^ _712_/ZN (NAND2_X2)
+   0.02    0.40 ^ output39/Z (BUF_X1)
+   0.00    0.40 ^ resp_msg[11] (out)
+           0.40   data arrival time
 
    0.46    0.46   clock core_clock (rise edge)
    0.00    0.46   clock network delay (propagated)
@@ -32,8 +36,8 @@ Path Type: max
            0.37   data required time
 ---------------------------------------------------------
            0.37   data required time
-          -0.61   data arrival time
+          -0.40   data arrival time
 ---------------------------------------------------------
-          -0.24   slack (VIOLATED)
+          -0.03   slack (VIOLATED)
 
 

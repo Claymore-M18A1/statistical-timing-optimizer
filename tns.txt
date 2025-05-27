@@ -1,1 +1,1 @@
-tns max -6.48
+tns max -0.31

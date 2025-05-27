@@ -6,7 +6,7 @@ import os
 
 # --- Utility Functions for STA ---
 
-def generate_derate(path="derate.tcl", mu=1.0, sigma_delay=0.03, sigma_check=0.02):
+def generate_derate(path="derate.tcl", mu=1.0, sigma_delay=0.02, sigma_check=0.02):
     """Generates a Tcl file with random timing derates."""
     # Ensure non-negative derates, although STA tools might handle small negatives
     delay_derate = max(0.1, np.random.normal(mu, sigma_delay)) # Avoid zero or negative
@@ -29,21 +29,19 @@ def generate_run_tcl(tcl_path="run_sta.tcl", verilog_path="design.v", design_nam
             f.write("# Auto-generated run_sta.tcl\n")
             f.write(f"read_liberty {lib_path}\n")
             f.write(f"read_verilog {verilog_path}\n")
-            f.write(f"link_design {design_name}\n") # Use design name variable
+            f.write(f"link_design {design_name}\n")
             f.write(f"read_sdc {sdc_path}\n")
-            # SPEF reading is crucial for accuracy, ensure it exists if uncommented
             if spef_path and os.path.exists(spef_path):
-                 f.write(f"read_spef {spef_path}\n")
+                f.write(f"read_spef {spef_path}\n")
             else:
-                 print(f"[Warning] SPEF file '{spef_path}' not found or specified, skipping read_spef.")
-            # Source the derate file
+                print(f"[Warning] SPEF file '{spef_path}' not found or specified, skipping read_spef.")
             if derate_tcl and os.path.exists(derate_tcl):
                 f.write(f"source {derate_tcl}\n")
             else:
                 print(f"[Warning] Derate file '{derate_tcl}' not found or specified, skipping derate source.")
 
-            # Ensure reports are written even if timing fails partially
-            f.write(f"report_checks -path_delay max -sort_by_slack > {timing_report}\n")
+            # Generate more detailed timing reports
+            f.write(f"report_checks -path_delay max -sort_by_slack -format full_clock_expanded > {timing_report}\n")
             f.write(f"report_wns > {wns_report}\n")
             f.write(f"report_tns > {tns_report}\n")
             f.write("exit\n")
@@ -52,30 +50,75 @@ def generate_run_tcl(tcl_path="run_sta.tcl", verilog_path="design.v", design_nam
         print(f"[ERROR] Failed to write Tcl script {tcl_path}: {e}")
         return False
 
-def parse_timing_report(path="timing.txt", keyword="slack (VIOLATED)"):
-    """Parses a timing report file for a specific keyword value."""
+def parse_timing_report(report_path):
+    """Parse the detailed timing report to extract gate-specific timing information."""
+    gate_timing = {}
+    current_gate = None
+    current_path = None
+    
     try:
-        with open(path, 'r') as f:
+        with open(report_path, 'r') as f:
             for line in f:
-                # Updated regex to handle potential variations in spacing and case
-                match = re.search(rf'{keyword}\s+([-\d\.e+]+)', line, re.IGNORECASE)
-                if match:
-                    return float(match.group(1))
-        # If keyword not found, maybe timing is met or format changed
-        # Try parsing for non-violated slack as a fallback
-        with open(path, 'r') as f:
-            for line in f:
-                 match = re.search(r'slack \(MET\)\s+([-\d\.e+]+)', line, re.IGNORECASE)
-                 if match:
-                     return float(match.group(1)) # Return the positive slack
-
-    except FileNotFoundError:
-        print(f"[Warning] Timing report file not found: {path}")
-    except ValueError:
-        print(f"[Warning] Could not parse float from timing report: {path}")
+                # Look for path start
+                if 'Startpoint' in line:
+                    current_path = line.split(':')[1].strip()
+                
+                # Look for gate instances
+                elif 'Instance' in line:
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        current_gate = parts[1]
+                        if current_gate not in gate_timing:
+                            gate_timing[current_gate] = {
+                                'delay': 0.0,
+                                'slew': 0.0,
+                                'slack': 0.0,
+                                'path_type': None,
+                                'path': current_path
+                            }
+                
+                # Extract timing information
+                elif current_gate:
+                    if 'delay' in line.lower():
+                        try:
+                            delay = float(line.split()[-2])
+                            gate_timing[current_gate]['delay'] = max(gate_timing[current_gate]['delay'], delay)
+                        except (ValueError, IndexError):
+                            pass
+                    elif 'slew' in line.lower():
+                        try:
+                            slew = float(line.split()[-2])
+                            gate_timing[current_gate]['slew'] = max(gate_timing[current_gate]['slew'], slew)
+                        except (ValueError, IndexError):
+                            pass
+                    elif 'slack' in line.lower():
+                        try:
+                            slack = float(line.split()[-2])
+                            # Keep the worst (most negative) slack
+                            if slack < gate_timing[current_gate]['slack']:
+                                gate_timing[current_gate]['slack'] = slack
+                        except (ValueError, IndexError):
+                            pass
+                    elif 'path type' in line.lower():
+                        path_type = line.split()[-1]
+                        if gate_timing[current_gate]['path_type'] is None:
+                            gate_timing[current_gate]['path_type'] = path_type
+        
+        # Print debug information
+        print("\n    --- Timing Report Summary ---")
+        for gate, timing in gate_timing.items():
+            print(f"    Gate: {gate}")
+            print(f"      Path: {timing['path']}")
+            print(f"      Delay: {timing['delay']:.4f} ns")
+            print(f"      Slew: {timing['slew']:.4f} ns")
+            print(f"      Slack: {timing['slack']:.4f} ns")
+            print(f"      Path Type: {timing['path_type']}")
+        print("    --- End Timing Report Summary ---\n")
+        
+        return gate_timing
     except Exception as e:
-        print(f"[Warning] Failed to parse timing report {path}: {e}")
-    return None # Indicate failure or inability to parse
+        print(f"[Warning] Error parsing timing report: {e}")
+        return {}
 
 # Keep WNS/TNS parsing separate as they have dedicated reports
 def parse_wns(path="wns.txt"):
@@ -116,96 +159,83 @@ def parse_tns(path="tns.txt"):
 
 
 def run_sta(verilog_file="design.v", design_name="gcd", sdc_path="design.sdc", lib_path="my.lib", spef_path="design.spef", derate_tcl="derate.tcl"):
-    """
-    Runs OpenSTA using a generated Tcl script and parses WNS/TNS.
-
-    Args:
-        verilog_file (str): Path to the Verilog netlist.
-        design_name (str): Name of the top-level module.
-        sdc_path (str): Path to the SDC constraints file.
-        lib_path (str): Path to the Liberty library file.
-        spef_path (str): Path to the SPEF parasitic file (optional).
-        derate_tcl (str): Path to the derate Tcl file (optional, needed for MC).
-
-    Returns:
-        tuple: (wns, tns) or (None, None) if STA fails or parsing fails.
-    """
-    tcl_script = "run_sta_temp.tcl" # Use a temporary name
-    timing_report = "timing_temp.txt"
-    wns_report = "wns_temp.txt"
-    tns_report = "tns_temp.txt"
-
-    # Generate the Tcl script for this specific run
-    if not generate_run_tcl(tcl_path=tcl_script, verilog_path=verilog_file, design_name=design_name, sdc_path=sdc_path, lib_path=lib_path, spef_path=spef_path, derate_tcl=derate_tcl, timing_report=timing_report, wns_report=wns_report, tns_report=tns_report):
-        print("[ERROR] Failed to generate STA Tcl script.")
+    """Run OpenSTA and return WNS and TNS values."""
+    # Generate TCL script
+    tcl_script = "run_sta.tcl"
+    timing_report = "timing.txt"
+    wns_report = "wns.txt"
+    tns_report = "tns.txt"
+    
+    if not generate_run_tcl(tcl_script, verilog_file, design_name, sdc_path, lib_path, spef_path, derate_tcl, 
+                          timing_report, wns_report, tns_report):
+        print("[ERROR] Failed to generate TCL script")
         return None, None
 
-    # Define the command to run OpenSTA
-    cmd = ["opensta", "-exit", tcl_script]
-    # print(f"  [STA CMD] Running: {' '.join(cmd)}") # Optional Debug
+    # Print the TCL script for debugging
+    print("\n--- Generated TCL Script ---")
+    with open(tcl_script, 'r') as f:
+        print(f.read())
+    print("--- End TCL Script ---\n")
 
+    # Run OpenSTA directly
     try:
-        # Run OpenSTA
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60) # Add timeout
-
-        # Filter common OpenSTA header/license lines for cleaner output
-        filtered_output = "\n".join([
-            line for line in (result.stdout + result.stderr).splitlines()
-            if not line.startswith("OpenSTA") and
-               not line.startswith("Copyright") and
-               not line.startswith("This is free software") and
-               "License GPLv3" not in line and
-               "ABSOLUTELY NO WARRANTY" not in line and
-               "http://gnu.org" not in line and
-               "for details." not in line and
-               not line.strip() == "" # Remove empty lines too
-        ])
-        if filtered_output:
-             # Indent STA output slightly for clarity in SA log
-             print("    --- OpenSTA Output ---")
-             for line in filtered_output.splitlines():
-                 print(f"    {line}")
-             print("    --- End OpenSTA Output ---")
-
-
-        # Check for OpenSTA errors
-        if result.returncode != 0:
-            print(f"[ERROR] OpenSTA execution failed for {verilog_file} with return code {result.returncode}.")
-            # print(f"  stderr:\n{result.stderr}") # Keep stderr for debugging
-            return None, None
-        if "Error:" in result.stdout or "Error:" in result.stderr:
-             print(f"[ERROR] OpenSTA reported errors during execution for {verilog_file}.")
-             return None, None
-
-
-        # Parse the results
+        # Use OpenSTA directly since we're already in a container
+        opensta_cmd = "/usr/local/bin/opensta"
+        
+        print(f"[INFO] Running OpenSTA: {opensta_cmd} {tcl_script}")
+        
+        result = subprocess.run([opensta_cmd, tcl_script], 
+                              capture_output=True, 
+                              text=True,
+                              check=True)
+        
+        print("\n--- OpenSTA Output ---")
+        print(result.stdout)
+        if result.stderr:
+            print("\n--- OpenSTA Errors ---")
+            print(result.stderr)
+        print("--- End OpenSTA Output ---\n")
+        
+        # Parse timing reports
         wns = parse_wns(wns_report)
         tns = parse_tns(tns_report)
-
-        # Basic validation
+        gate_timing = parse_timing_report(timing_report)
+        
         if wns is None or tns is None:
-             print(f"[ERROR] Failed to parse WNS or TNS from reports for {verilog_file}.")
-             # Optionally try parsing the main timing report as a last resort
-             # wns = parse_timing_report(timing_report) # This might get the worst slack
-             # tns = None # TNS is harder to get from the main report reliably
-             return None, None
-
+            print("[WARNING] Failed to parse timing reports")
+            return None, None
+            
+        print(f"[INFO] WNS: {wns:.4f} ns, TNS: {tns:.4f} ns")
+        
+        # Print detailed timing information
+        if gate_timing:
+            print("\n--- Detailed Timing Information ---")
+            for gate, timing in gate_timing.items():
+                print(f"Gate: {gate}")
+                print(f"  Path: {timing['path']}")
+                print(f"  Delay: {timing['delay']:.4f} ns")
+                print(f"  Slew: {timing['slew']:.4f} ns")
+                print(f"  Slack: {timing['slack']:.4f} ns")
+                print(f"  Path Type: {timing['path_type']}")
+            print("--- End Detailed Timing Information ---\n")
+        
         return wns, tns
-
-    except subprocess.TimeoutExpired:
-        print(f"[ERROR] OpenSTA timed out for {verilog_file}.")
+        
+    except subprocess.CalledProcessError as e:
+        print(f"[ERROR] OpenSTA failed with return code {e.returncode}")
+        print("STDOUT:", e.stdout)
+        print("STDERR:", e.stderr)
         return None, None
     except Exception as e:
-        print(f"[ERROR] An unexpected error occurred while running/parsing STA for {verilog_file}: {e}")
+        print(f"[ERROR] Unexpected error running OpenSTA: {e}")
         return None, None
     finally:
-        # Clean up temporary files
-        for f in [tcl_script, timing_report, wns_report, tns_report]:
-            if os.path.exists(f):
-                try:
-                    os.remove(f)
-                except OSError:
-                    pass # Ignore cleanup errors
+        # Only clean up the TCL script, keep the report files
+        if os.path.exists(tcl_script):
+            try:
+                os.remove(tcl_script)
+            except OSError:
+                pass
 
 # --- Standalone Monte Carlo Analysis ---
 def monte_carlo_main(verilog_file="design.v", num_runs=10, design_name="gcd", sdc_path="design.sdc", lib_path="my.lib", spef_path="design.spef"):
